@@ -119,7 +119,7 @@ ggplot(activity_mean, aes(x=activity_mean$interval, y=activity_mean$mean_steps))
   ylab("Average number of steps per interval")
 ```
 
-![plot of chunk averabe daily activity pattern - plot](figure/averabe daily activity pattern - plot-1.png)
+![plot of chunk averagee-daily-activity-pattern](figure/averagee-daily-activity-pattern-1.png)
 
 ###Which 5-minute interval, on average across all the days in the data set, contains the maximum number of steps?
 
@@ -200,7 +200,7 @@ hist2<- ggplot(activity_impute_sum, aes(x=steps)) +
 hist2
 ```
 
-![plot of chunk hist-no missing values](figure/hist-no missing values-1.png)
+![plot of chunk hist-no-missing-values](figure/hist-no-missing-values-1.png)
 
 ###Comparing the histogram for imputed and omitted values data
 
@@ -209,7 +209,7 @@ hist2
 grid.arrange(hist1, hist2, ncol=2)
 ```
 
-![plot of chunk comparing 2 histograms](figure/comparing 2 histograms-1.png)
+![plot of chunk comparing-2-histograms](figure/comparing-2-histograms-1.png)
 
 Mean omitted missing values 
 
@@ -298,7 +298,7 @@ ggplot(activity_impute, aes(x=interval, y=steps, color=day)) +
   labs(title="Average Daily Steps (type of day)", x="5-min interval", y="Total number of steps")
 ```
 
-![plot of chunk pattern difference](figure/pattern difference-1.png)
+![plot of chunk pattern-difference](figure/pattern-difference-1.png)
 
 
 
