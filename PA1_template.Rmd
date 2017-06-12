@@ -1,25 +1,220 @@
 ---
 title: "Reproducible Research: Peer Assessment 1"
 output: 
-  html_document:
-    keep_md: true
+html_document:
+keep_md: true
 ---
 
 
-## Loading and preprocessing the data
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(reshape2)
+library(gridExtra)
+```
+
+# Loading and preprocessing the data
+
+```{r load data}
+
+activity_raw<-read.csv(unz("activity.zip", "activity.csv"), stringsAsFactors = FALSE)
+activity_df<-activity_raw
+
+activity_df$date<-as.Date(as.character(activity_df$date), "%Y-%m-%d")
+activity_df$day<-ifelse(weekdays(activity_df$date) %in% c("Saturday", "Sunday"), "Weekend", "Weekday" ) 
+
+str(activity_df)
+
+```
+
+# What is mean total number of steps taken per day?
+
+###Calculating the total number of steps taken per day
+```{r summary data}
+
+activity_sum<-aggregate(steps ~ date, data = activity_df, FUN = sum, na.rm = TRUE)
+colnames(activity_sum)<-c("date", "steps")
+
+head(activity_sum)
+```
 
 
 
-## What is mean total number of steps taken per day?
+```{r mean-total}
 
+hist1<- ggplot(activity_sum, aes(x=steps)) +
+  geom_histogram(na.rm = TRUE, bins = 30) + 
+  xlab("Total steps per day")+
+  ggtitle("Ommited missing values")+
+  scale_y_continuous(limits = c(0,15))
+
+hist1
+
+```
+
+Mean number of steps taken each day is 
+```{r mean}
+
+mean(activity_sum$steps, na.rm = TRUE )
+
+```
+
+Median number of steps taken each day
+```{r median}
+
+median(activity_sum$steps, na.rm=TRUE)
+
+```
 
 
 ## What is the average daily activity pattern?
 
+###Prepare a data set with the average number of steps taken across all days
+```{r average daily activity pattern}
+
+activity_mean<-dcast(activity_df, interval ~ . , value.var = "steps", mean, na.rm=TRUE)
+colnames(activity_mean)<-c("interval", "mean_steps")
+
+str(activity_mean)
+```
+
+###Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+```{r averabe daily activity pattern - plot}
+ggplot(activity_mean, aes(x=activity_mean$interval, y=activity_mean$mean_steps))+
+  geom_line(na.rm = TRUE) +
+  xlab("5 minutes intervals") +
+  ylab("Average number of steps per interval")
+  
+```
+
+###Which 5-minute interval, on average across all the days in the data set, contains the maximum number of steps?
+
+```{r max steps interval}
+
+max_steps<-activity_mean[which(activity_mean$mean_steps==max(activity_mean$mean_steps, na.rm=TRUE)),]
+
+```
+
+On average across all days in the data set interval# **`r max_steps$interval`** contained maximum number of numbers that is **`r round(max_steps$mean_steps) `** steps.
+
+#Imputing missing values
+
+###Calculate and report the total number of missing values in the data set (i.e. the total number of rows with NAs)
+```{r identifying missing values}
+  
+sapply(activity_df, function(x) sum(is.na(x)))
+
+```
+
+The following visualization clearly shows that those missing values happen during a certain days during the period when the device wasn't used most likely. 
 
 
-## Imputing missing values
+###Devise a strategy for filling in all of the missing values in the data set.
+* I'll undertake simple strategy for imputing missing values and for every missing value we're adding it's average through the 5 min interval.
+
+###Create a new data set activity_impute that is equal to the original data set but with the missing data filled in
+```{r impute}
+
+activity_impute<-activity_df
+l<-length(activity_impute$steps)
+
+for (i in 1:l){
+  if (is.na(activity_impute$steps[i])){
+    
+    index_interval<-activity_impute$interval[i]
+    activity_impute$steps[i]<-activity_mean[activity_mean$interval ==  index_interval, "mean_steps"]
+    
+  }
+  
+}
+str(activity_impute)
+
+```
+Check if there are NA values left 
+```{r check_na}
+sum(is.na(activity_impute$steps))
+
+```
+
+###Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+```{r hist-no missing values}
+
+activity_impute_sum<-dcast(activity_impute, date ~. , sum, value.var = "steps")
+colnames(activity_impute_sum)<-c("date", "steps")
+
+hist2<- ggplot(activity_impute_sum, aes(x=steps)) +
+  geom_histogram(na.rm = TRUE, bins = 30) + 
+  xlab("Total steps per day")+
+  ggtitle("Imputed missing values")+
+  scale_y_continuous(limits = c(0,15))
+
+hist2
+```
+
+###Comparing the histogram for imputed and omitted values data
+
+```{r comparing 2 histograms}
+
+grid.arrange(hist1, hist2, ncol=2)
+
+```
+
+Mean omitted missing values 
+
+```{r mean-om} 
+
+round(mean(activity_sum$steps, na.rm=TRUE),2) 
+```
+Mean imputed missing values 
+```{r mean-imp}
+round(mean(activity_impute_sum$steps),2)
+```
+
+Difference between mean omitted and mean imputed
+```{r mean dif}
+round(mean(activity_sum$steps, na.rm=TRUE),2) - round(mean(activity_impute_sum$steps),2)
+```
+Imputing the NA values doesn't change the Mean value
+
+Median omitted missing values 
+```r{med-om}
+round(median(activity_sum$steps, na.rm=TRUE),2)
+```
+
+Median imputed missing values 
+```{r med-imp} 
+round(median(activity_impute_sum$steps),2)
+```
+
+Difference between median omitted and median imputed
+```{r diff-median}
+round(median(activity_sum$steps, na.rm=TRUE),2) - round(median(activity_impute_sum$steps),2)
+
+
+```
+Only median value has been affected by the chosen strategy of imputing the missing values
+
+
+# Are there differences in activity patterns between weekdays and weekends?
+
+###Create a new factor variable in the data set with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
+
+```{r head-activity_impute}
+head(activity_impute)
+```
+
+###Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the Git Hub repository to see an example of what this plot should look like using simulated data.
+
+```{r pattern difference}
+
+ggplot(activity_impute, aes(x=interval, y=steps, color=day)) + 
+  geom_line(size=1) + 
+  facet_grid(day~.)+
+  labs(title="Average Daily Steps (type of day)", x="5-min interval", y="Total number of steps")
+```
 
 
 
-## Are there differences in activity patterns between weekdays and weekends?
+
